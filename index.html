@@ -1,0 +1,125 @@
+const express = require('express');
+const app = express();
+app.use(express.json());
+
+const products = {
+  "iphone 18 pro max": 70000000,
+  "macbook": 105000000,
+  "chuột": 5000000,
+  "tai nghe": 3000000,
+  "ipad": 20000000,
+  "cục sạc dự phòng": 3000000,
+  "tivi": 78000000,
+  "cục sạc bluetooth": 7000000
+};
+
+const warranty = `7 ngày đổi mới, hoàn tiền 100% nếu lỗi, bảo hành 12-24 tháng tùy sản phẩm.`;
+const shipping = `Phí ship: Nội thành ~15k, trung tâm 25k, ngoại thành 35-45k. Freeship đơn trên 5 triệu. Gò Vấp miễn phí.`;
+const contact = `Hotline 0123456789, Zalo 0123456789, Messenger DHAs Nguyễn Kiệm`;
+
+function answer(question) {
+  const q = question.toLowerCase();
+  if (q.includes('giá') || Object.keys(products).some(p => q.includes(p))) {
+    for (let p in products) {
+      if (q.includes(p)) return `${p.charAt(0).toUpperCase() + p.slice(1)} giá ${products[p].toLocaleString('vi-VN')} đồng.`;
+    }
+    return 'Bạn muốn hỏi giá sản phẩm nào?';
+  }
+  if (q.includes('bảo hành') || q.includes('đổi trả')) return warranty;
+  if (q.includes('phí ship') || q.includes('giao hàng')) return shipping;
+  if (q.includes('địa chỉ') || q.includes('cửa hàng')) return 'Địa chỉ: Nguyễn Kiệm, Phường Hành Thông, TP.HCM.';
+  return `Xin lỗi, mình chưa biết câu trả lời. ${contact}`;
+}
+
+app.get('/', (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DHAs Nguyễn Kiệm - Điện tử chính hãng</title>
+<style>
+  body {margin:0; font-family:Arial,sans-serif; background:#000; color:#fff; padding:10px;}
+  header {background:linear-gradient(90deg,#FFD700,#228B22,#0000FF,#800080,#FF0000,#FFC0CB,#FFA500); padding:10px; text-align:center;}
+  main {margin-top:15px;}
+  table {width:100%; border-collapse:collapse; margin-bottom:15px;}
+  th,td {border:1px solid #555; padding:8px; text-align:left;}
+  th {background:#222;}
+  tbody tr:nth-child(odd) {background:#1a1a1a;}
+  #chat {margin-top:20px;}
+  #chat input[type=text] {width:80%; padding:8px; border:none; border-radius:4px;}
+  #chat button {padding:8px 12px; border:none; border-radius:4px; background:#FFA500; color:#000; cursor:pointer;}
+  #chatbox {margin-top:10px; max-height:200px; overflow-y:auto; background:#111; padding:10px; border-radius:4px;}
+  .user {color:#FFA500; margin-bottom:5px;}
+  .bot {color:#0f0; margin-bottom:10px;}
+</style>
+</head>
+<body>
+<header><h1>DHAs Nguyễn Kiệm</h1><div>Điện tử chính hãng - Giá tốt Nguyễn Kiệm</div></header>
+<main>
+<table>
+<thead><tr><th>Sản phẩm</th><th>Giá</th></tr></thead>
+<tbody>
+<tr><td>Iphone 18 Pro Max</td><td>70 triệu đồng</td></tr>
+<tr><td>Macbook</td><td>105 triệu đồng</td></tr>
+<tr><td>Chuột</td><td>5 triệu đồng</td></tr>
+<tr><td>Tai nghe</td><td>3 triệu đồng</td></tr>
+<tr><td>Ipad</td><td>20 triệu đồng</td></tr>
+<tr><td>Cục sạc dự phòng</td><td>3 triệu đồng</td></tr>
+<tr><td>Tivi</td><td>78 triệu đồng</td></tr>
+<tr><td>Cục sạc bluetooth</td><td>7 triệu đồng</td></tr>
+</tbody>
+</table>
+
+<section>
+<h3>Chính sách bảo hành</h3>
+<p>7 ngày đổi mới, hoàn tiền 100% nếu lỗi, bảo hành 12-24 tháng tùy sản phẩm.</p>
+</section>
+
+<section id="chat">
+  <h3>Hỏi trợ lý ảo</h3>
+  <input type="text" id="question" placeholder="Nhập câu hỏi của bạn..." />
+  <button onclick="sendQuestion()">Gửi</button>
+  <div id="chatbox"></div>
+</section>
+</main>
+
+<script>
+  async function sendQuestion() {
+    const qInput = document.getElementById('question');
+    const chatbox = document.getElementById('chatbox');
+    const question = qInput.value.trim();
+    if (!question) return;
+    chatbox.innerHTML += '<div class="user"><b>Bạn:</b> ' + question + '</div>';
+    qInput.value = '';
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({question})
+      });
+      const data = await res.json();
+      chatbox.innerHTML += '<div class="bot"><b>Trợ lý:</b> ' + data.answer + '</div>';
+      chatbox.scrollTop = chatbox.scrollHeight;
+    } catch {
+      chatbox.innerHTML += '<div class="bot"><b>Trợ lý:</b> Có lỗi xảy ra, vui lòng thử lại.</div>';
+    }
+  }
+</script>
+</body>
+</html>
+  `);
+});
+
+app.post('/chat', (req, res) => {
+  const { question } = req.body;
+  if (!question) return res.status(400).json({ error: 'Vui lòng gửi câu hỏi.' });
+  const greeting = ['chào', 'hello', 'hi', 'xin chào'];
+  if (greeting.some(g => question.toLowerCase().includes(g))) {
+    return res.json({ answer: 'Chào bạn! Mình là trợ lý ảo của DHAs Nguyễn Kiệm, bạn cần hỗ trợ gì?' });
+  }
+  res.json({ answer: answer(question) });
+});
+
+app.listen(3000, () => console.log('Server chạy tại http://localhost:3000'));
